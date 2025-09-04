@@ -1,0 +1,14 @@
+Response:
+A POST request should be made to the following URL: https://waterwebservices.rijkswaterstaat.nl/ONLINEWAARNEMINGENSERVICES_DBO/OphalenWaarnemingen
+
+The following body should then be used for the Vlissingen location:
+
+{"Location":{"Code":"VLISSGN", "X":541425.983214885, "Y":5699181.90968435},
+"AquoPlusWaarnemingMetadata":{
+"AquoMetadata":{"Grouping":{"Code":"GETETBRKD2"}}},
+"Period":{
+"StartDateTime":"2013-01-03T00:00:00.000+01:00",
+End date time: "2023-01-03T12:00:00.000+01:00"
+
+For further explanation, you can also consult the documentation:
+https://rijkswaterstaatdata.nl/waterdata#:~:text=Zij%20keer%20het%20tij%3F
