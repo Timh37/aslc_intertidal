@@ -4,7 +4,7 @@ from matplotlib.patches import Rectangle
 import pandas as pd
 import src.functions as f
 
-def figure_2a(path_bin = './bin/figure_2/figure_2a.npy', path_png = None, run = False):
+def figure_2a(ax,path_bin = './bin/figure_2/figure_2a.npy', path_png = None, run = False):
 
     def run_simulation_figure_2(path_bin):
 
@@ -41,56 +41,56 @@ def figure_2a(path_bin = './bin/figure_2/figure_2a.npy', path_png = None, run = 
 
         np.save(path_bin, (amplitude_annual_cycle, total_intertidal, supratidal_boundary, upper_intertidal_boundary, lower_intertidal_boundary, subtidal_boundary))
 
-    def plot_figure_2(path_bin, path_png):
+    def plot_figure_2(ax,path_bin, path_png):
 
         amplitude_annual_cycle, total_intertidal, supratidal_boundary, upper_intertidal_boundary, lower_intertidal_boundary, subtidal_boundary = np.load(path_bin)
 
         # Figure 2b
-        plt.plot(amplitude_annual_cycle, supratidal_boundary, c = 'orange', alpha = 0.5)
-        plt.plot(amplitude_annual_cycle, upper_intertidal_boundary, c = 'orange')
-        plt.plot(amplitude_annual_cycle, lower_intertidal_boundary, c = 'blue')
-        plt.plot(amplitude_annual_cycle, subtidal_boundary, c = 'blue', alpha = 0.5)
-        plt.scatter(amplitude_annual_cycle, supratidal_boundary, c = 'orange', s = 1, alpha = 0.5)
-        plt.scatter(amplitude_annual_cycle, upper_intertidal_boundary, c = 'orange', s = 1, alpha = 1.0)
-        plt.scatter(amplitude_annual_cycle, lower_intertidal_boundary, c = 'blue', s = 1, alpha = 1.0)
-        plt.scatter(amplitude_annual_cycle, subtidal_boundary, c = 'blue', s = 1, alpha = 0.5)
+        ax.plot(amplitude_annual_cycle, supratidal_boundary, c = 'orange', alpha = 0.5)
+        ax.plot(amplitude_annual_cycle, upper_intertidal_boundary, c = 'orange')
+        ax.plot(amplitude_annual_cycle, lower_intertidal_boundary, c = 'blue')
+        ax.plot(amplitude_annual_cycle, subtidal_boundary, c = 'blue', alpha = 0.5)
+        ax.scatter(amplitude_annual_cycle, supratidal_boundary, c = 'orange', s = 1, alpha = 0.5)
+        ax.scatter(amplitude_annual_cycle, upper_intertidal_boundary, c = 'orange', s = 1, alpha = 1.0)
+        ax.scatter(amplitude_annual_cycle, lower_intertidal_boundary, c = 'blue', s = 1, alpha = 1.0)
+        ax.scatter(amplitude_annual_cycle, subtidal_boundary, c = 'blue', s = 1, alpha = 0.5)
 
         def closest_to(x, seq):
             return np.argmin(np.abs(seq - x))
         
         transition_point = amplitude_annual_cycle[closest_to(upper_intertidal_boundary, 0)]
 
-        plt.fill_between(x = amplitude_annual_cycle[amplitude_annual_cycle <= transition_point], 
+        ax.fill_between(x = amplitude_annual_cycle[amplitude_annual_cycle <= transition_point], 
                         y1 = (upper_intertidal_boundary)[amplitude_annual_cycle <= transition_point], 
                         y2 = (lower_intertidal_boundary)[amplitude_annual_cycle <= transition_point], color = 'grey', alpha = 0.2)
-        plt.fill_between(x = amplitude_annual_cycle[amplitude_annual_cycle > transition_point], 
+        ax.fill_between(x = amplitude_annual_cycle[amplitude_annual_cycle > transition_point], 
                         y1 = (upper_intertidal_boundary)[amplitude_annual_cycle > transition_point], 
                         y2 = (lower_intertidal_boundary)[amplitude_annual_cycle > transition_point], color = 'grey', alpha = 0.7)
-        plt.fill_between(x = amplitude_annual_cycle, 
+        ax.fill_between(x = amplitude_annual_cycle, 
                         y1 = (supratidal_boundary), 
                         y2 = np.maximum(lower_intertidal_boundary, upper_intertidal_boundary), color = 'orange', alpha = 0.2)
-        plt.fill_between(x = amplitude_annual_cycle, 
+        ax.fill_between(x = amplitude_annual_cycle, 
                         y1 = (subtidal_boundary), 
                         y2 = np.minimum(lower_intertidal_boundary, upper_intertidal_boundary), color = 'blue', alpha = 0.2)
 
-        plt.text(x = amplitude_annual_cycle.max()*0.5, y =  1.25, s = 'Supratidal zone',       c = 'black',  rotation =  7, fontsize = 10, horizontalalignment = 'center', verticalalignment = 'center')
-        plt.text(x = amplitude_annual_cycle.max()*0.5, y =  0.90, s = 'Upper intertidal zone', c = 'orange', rotation =  7, fontsize = 10, horizontalalignment = 'center', verticalalignment = 'center')
-        plt.text(x = amplitude_annual_cycle.max()*0.5, y = -0.95, s = 'Lower intertidal zone', c = 'blue',   rotation = -7, fontsize = 10, horizontalalignment = 'center', verticalalignment = 'center')
-        plt.text(x = amplitude_annual_cycle.max()*0.5, y = -1.30, s = 'Subtidal zone',         c = 'black',  rotation = -7, fontsize = 10, horizontalalignment = 'center', verticalalignment = 'center')
-        plt.text(x = 0.02, y = -0.03, s = 'Stable zone',     c = 'black',  rotation =   3, fontsize = 10, horizontalalignment = 'left',   verticalalignment = 'center')
-        plt.text(x = amplitude_annual_cycle.max() - 0.02, y = -0.15, s = 'Seasonally-transitioning zone', c = 'black',  rotation = -7, fontsize = 10, horizontalalignment = 'right', verticalalignment = 'center')
-        plt.ylabel('Deviation from MSL / Tidal range [-]', fontsize = 12)
-        plt.xlabel('ASLC range / Tidal range [-]', fontsize = 12)
-        plt.ylim(-2.1, 2.1)
-        if path_png is not None:
-            plt.savefig(path_png, dpi = 300)
-        plt.show()
+        ax.text(x = amplitude_annual_cycle.max()*0.5, y =  1.25, s = 'Supratidal zone',       c = 'black',  rotation =  7, fontsize = 10, horizontalalignment = 'center', verticalalignment = 'center')
+        ax.text(x = amplitude_annual_cycle.max()*0.5, y =  0.90, s = 'Upper intertidal zone', c = 'orange', rotation =  7, fontsize = 10, horizontalalignment = 'center', verticalalignment = 'center')
+        ax.text(x = amplitude_annual_cycle.max()*0.5, y = -0.95, s = 'Lower intertidal zone', c = 'blue',   rotation = -7, fontsize = 10, horizontalalignment = 'center', verticalalignment = 'center')
+        ax.text(x = amplitude_annual_cycle.max()*0.5, y = -1.30, s = 'Subtidal zone',         c = 'black',  rotation = -7, fontsize = 10, horizontalalignment = 'center', verticalalignment = 'center')
+        ax.text(x = 0.02, y = -0.03, s = 'Stable zone',     c = 'black',  rotation =   3, fontsize = 10, horizontalalignment = 'left',   verticalalignment = 'center')
+        ax.text(x = amplitude_annual_cycle.max() - 0.02, y = -0.15, s = 'Seasonally-transitioning zone', c = 'black',  rotation = -7, fontsize = 10, horizontalalignment = 'right', verticalalignment = 'center')
+        ax.set_ylabel('Deviation from MSL / Tidal range [-]', fontsize = 12)
+        ax.set_xlabel('ASLC range / Tidal range [-]', fontsize = 12)
+        ax.set_ylim(-2.1, 2.1)
+        #if path_png is not None:
+        #    plt.savefig(path_png, dpi = 300)
+        #plt.show()
 
     if run:
         run_simulation_figure_2(path_bin)
-    plot_figure_2(path_bin, path_png)
+    plot_figure_2(ax,path_bin, path_png)
 
-def figure_2b(path_csv = 'data/ticon/TICON.txt', path_png = None):
+def figure_2b(ax,path_csv = 'data/ticon/TICON.txt', path_png = None):
 
     def create_ticon_timeseries(path_csv):
 
@@ -139,7 +139,7 @@ def figure_2b(path_csv = 'data/ticon/TICON.txt', path_png = None):
 
         return waterlevel_new
 
-    def plot_test_figure(elevation, emergence_freq, inundation_freq):
+    def plot_test_figure(ax,elevation, emergence_freq, inundation_freq):
 
         def identify_intertidal_zones(elevation, emergence_freq, inundation_freq):
 
@@ -156,37 +156,37 @@ def figure_2b(path_csv = 'data/ticon/TICON.txt', path_png = None):
             upper_intertidal = ((inundation_freq[i,:] < 0.99) & (inundation_freq[i,:] > 0.01))
             lower_intertidal = ((emergence_freq[i,:] < 0.99) & (emergence_freq[i,:] > 0.01))
 
-            plt.fill_between(elevation, upper_intertidal, color = 'orange', alpha = 0.05)
-            plt.fill_between(elevation, lower_intertidal, color = 'blue', alpha = 0.05)
+            ax.fill_between(elevation, upper_intertidal, color = 'orange', alpha = 0.05)
+            ax.fill_between(elevation, lower_intertidal, color = 'blue', alpha = 0.05)
 
             if i == 0:
-                plt.plot(elevation, emergence_freq[i,:], c = 'blue', alpha = 1, label = 'Emergence')
-                plt.plot(elevation, inundation_freq[i,:], c = 'orange', alpha = 1, label = 'Inundation')
+                ax.plot(elevation, emergence_freq[i,:], c = 'blue', alpha = 1, label = 'Emergence')
+                ax.plot(elevation, inundation_freq[i,:], c = 'orange', alpha = 1, label = 'Inundation')
 
-                plt.plot([lower_intertidal_boundary, upper_intertidal_boundary], [-0.02,-0.02], alpha = 1, c = 'black')
-                plt.plot([supratidal_boundary, upper_intertidal_boundary], [1.035,1.035], alpha = 1, c = 'orange')
-                plt.plot([lower_intertidal_boundary, subtidal_boundary], [1.02,1.02], alpha = 1, c = 'blue')
+                ax.plot([lower_intertidal_boundary, upper_intertidal_boundary], [-0.02,-0.02], alpha = 1, c = 'black')
+                ax.plot([supratidal_boundary, upper_intertidal_boundary], [1.035,1.035], alpha = 1, c = 'orange')
+                ax.plot([lower_intertidal_boundary, subtidal_boundary], [1.02,1.02], alpha = 1, c = 'blue')
             else:
-                plt.plot(elevation, emergence_freq[i,:], c = 'blue', alpha = 0.5, linestyle = 'dashed')
-                plt.plot(elevation, inundation_freq[i,:], c = 'orange', alpha = 0.5, linestyle = 'dashed')
+                ax.plot(elevation, emergence_freq[i,:], c = 'blue', alpha = 0.5, linestyle = 'dashed')
+                ax.plot(elevation, inundation_freq[i,:], c = 'orange', alpha = 0.5, linestyle = 'dashed')
 
-                plt.plot([lower_intertidal_boundary, upper_intertidal_boundary], [-0.02,-0.02], c = 'black', alpha = 0.5, linestyle = 'dashed')
-                plt.plot([supratidal_boundary, upper_intertidal_boundary], [1.035,1.035], c = 'orange', alpha = 0.5, linestyle = 'dashed')
-                plt.plot([lower_intertidal_boundary, subtidal_boundary], [1.02,1.02], c = 'blue', alpha = 0.5, linestyle = 'dashed')
+                ax.plot([lower_intertidal_boundary, upper_intertidal_boundary], [-0.02,-0.02], c = 'black', alpha = 0.5, linestyle = 'dashed')
+                ax.plot([supratidal_boundary, upper_intertidal_boundary], [1.035,1.035], c = 'orange', alpha = 0.5, linestyle = 'dashed')
+                ax.plot([lower_intertidal_boundary, subtidal_boundary], [1.02,1.02], c = 'blue', alpha = 0.5, linestyle = 'dashed')
 
-        plt.ylabel('Frequency of inundation/emergence [-]', fontsize = 12)
-        plt.xlabel('Deviation from MSL / Tidal range [-]', fontsize = 12)
-        plt.legend(frameon = False, fontsize = 11)
+        ax.set_ylabel('Frequency of inundation/emergence [-]', fontsize = 12)
+        ax.set_xlabel('Deviation from MSL / Tidal range [-]', fontsize = 12)
+        ax.legend(frameon = False, fontsize = 11)
         # plt.ylim(-0.17,1.17)
         # plt.yticks(np.arange(0,1 + 0.2,0.2))
         # plt.xlim(-3.4, 3.4)
-        plt.show()
+        #plt.show()
 
-    def plot_boxplot_figure(elevation, emergence_freq, inundation_freq, path_png):
+    def plot_boxplot_figure(ax,elevation, emergence_freq, inundation_freq, path_png):
     
         dz = np.round(np.diff(elevation).mean(), 3)    
 
-        fig, ax = plt.subplots()
+        #fig, ax = plt.subplots()
         for i in range(emergence_freq.shape[0]):
             upper_intertidal         = (emergence_freq [i,:] > 0.99) & ((inundation_freq[i,:] < 0.99) & (inundation_freq[i,:] > 0.01))
             intermediate_intertidal  = (inundation_freq[i,:] > 0.99) & (emergence_freq [i,:] > 0.99)
@@ -205,14 +205,14 @@ def figure_2b(path_csv = 'data/ticon/TICON.txt', path_png = None):
             if (y[3] - y[2]) > 0:
                 trans = Rectangle((i*0.125 - 0.1, y[1]), 0.1, y[3] - y[2], edgecolor = (0.1, 0.1, 0.1, 1),   facecolor = (0.1, 0.1, 0.1, 0.4), lw = 2)
                 ax.add_patch(trans)
-        plt.ylim(elevation.min(), elevation.max())
-        plt.xlim(-1, 1)
-        plt.xticks(ticks = [0], labels = ['Mediterranean Sea'])
-        plt.ylabel('Deviation from MSL / Tidal range [-]', fontsize = 12)
-        plt.xlabel('Location', fontsize = 12)
-        if path_png is not None:
-            plt.savefig(path_png, dpi = 300)
-        plt.show()
+        ax.set_ylim(elevation.min(), elevation.max())
+        ax.set_xlim(-1, 1)
+        ax.set_xticks(ticks = [0], labels = ['Mediterranean Sea'])
+        ax.set_ylabel('Deviation from MSL / Tidal range [-]', fontsize = 12)
+        ax.set_xlabel('Location', fontsize = 12)
+        #if path_png is not None:
+        #    plt.savefig(path_png, dpi = 300)
+        #plt.show()
 
     time, waterlevel = create_ticon_timeseries(path_csv)
     waterlevel_t0 = add_aslc(time, waterlevel, amplitude_annual_m = 0)
@@ -226,8 +226,8 @@ def figure_2b(path_csv = 'data/ticon/TICON.txt', path_png = None):
     emergence_freq = np.vstack((emergence_freq_0, emergence_freq_1))
     inundation_freq = np.vstack((inundation_freq_0, inundation_freq_1))
 
-    plot_test_figure(elevation, emergence_freq, inundation_freq)
-    plot_boxplot_figure(elevation, emergence_freq, inundation_freq, path_png)
+    #plot_test_figure(ax,elevation, emergence_freq, inundation_freq)
+    plot_boxplot_figure(ax,elevation, emergence_freq, inundation_freq, path_png)
 
-figure_2a(path_bin = './bin/figure_2/figure_2a.npy', path_png = './figures/figure_2/figure_2a.png', run = False)
-figure_2b(path_csv = './data/ticon/TICON.txt', path_png = './figures/figure_2/figure_2b.png')
+#figure_2a(path_bin = './bin/figure_2/figure_2a.npy', path_png = './figures/figure_2/figure_2a.png', run = False)
+#figure_2b(path_csv = './data/ticon/TICON.txt', path_png = './figures/figure_2/figure_2b.png')
