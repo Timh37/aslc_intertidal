@@ -63,8 +63,6 @@ def generate_oun(nt, xmean = 0, sigma = 1, rho = 0.1, dt = 1):
 
     return x
 
-t, w_measured, w_predicted, w_stochastic = load_datasets()
-
 def find_tidal_amplitude(w_predicted, dt = 10/60):
 
     # Interpolate to 5 min measuring interval so 745 min tidal interval can be divided evenly
@@ -84,6 +82,8 @@ def find_tidal_amplitude(w_predicted, dt = 10/60):
     tidal_amplitude = (high_water_level - low_water_level)/2
 
     return tidal_amplitude.mean()
+
+t, w_measured, w_predicted, w_stochastic = load_datasets()
 
 dt = 10/60 # hours
 rho_est, sigma_est = estimate_stochastic_parameters(x = w_stochastic, dt = dt, xmean = 0)
