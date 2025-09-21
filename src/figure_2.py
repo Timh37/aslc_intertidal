@@ -4,7 +4,7 @@ from matplotlib.patches import Rectangle
 import pandas as pd
 import src.functions as f
 
-def figure_2a(ax,path_bin = './bin/figure_2/figure_2a.npy', path_png = None, run = False):
+def figure_2a(ax, path_bin = './bin/figure_2/figure_2a.npy', path_png = None, run = False):
 
     def run_simulation_figure_2(path_bin):
 
@@ -90,9 +90,21 @@ def figure_2a(ax,path_bin = './bin/figure_2/figure_2a.npy', path_png = None, run
         run_simulation_figure_2(path_bin)
     plot_figure_2(ax,path_bin, path_png)
 
-def figure_2b(ax,path_csv = 'data/ticon/TICON.txt', path_png = None):
+def figure_2c(ax, path_csv = 'data/ticon/TICON.txt', path_png = None):
 
-    def create_ticon_timeseries(path_csv):
+    def create_ticon_timeseries(path_csv, lat, lon):
+
+        def calculate_tidal_range(w):
+
+            nx = 149
+            ny = int(np.floor(w.size/nx))
+            w = w[:(nx*ny)].reshape(nx,ny)
+            lwl = w.min(axis = 0)
+            hwl = w.max(axis = 0)
+            tidal_amplitude = np.mean(hwl - lwl)
+            print(tidal_amplitude)
+
+            return tidal_amplitude
 
         tidal_constants = np.array([
             'M2', 'K1', 'N2', 'O1', 'P1', 'Q1', 'K2', 'S2', 'S1', 'SA', 'T2', 'MF', 'MM',
@@ -108,17 +120,18 @@ def figure_2b(ax,path_csv = 'data/ticon/TICON.txt', path_png = None):
             12.5660, 23.9340
         ])
 
-        df = pd.read_csv(path_csv, delim_whitespace=True)
+        df = pd.read_csv(path_csv, sep='\s+')
         df.columns = ['latitude', 'longitude', 'tidal_constituent', 'amplitude_cm', 'phase_degrees', 'amplitude-std_cm', 'phase-std_degrees', 'missing_data_percent', 'total_observations', 'time_gap_max', 'start_date', 'end_date', 'data_source']
 
         df['site_id'] = df.groupby(['latitude', 'longitude', 'data_source', 'start_date', 'end_date']).ngroup()
         site_list = np.unique(df['site_id'])
         n_sites = site_list.size
 
-        i = np.random.choice(n_sites)
-        i = 57#392
-        print(i)
-        site = df['site_id'] == i
+        def closest_to(x0, y0, x1, y1):
+            return np.argmin(np.sqrt((x1 - x0)**2 + (y1 - y0)**2))
+        idx = closest_to(df['latitude'], df['longitude'],  lat, lon)
+
+        site = df['site_id'] == df['site_id'][idx]
         df_site = df[site]
         amplitude_m  = df_site['amplitude_cm'].to_numpy() / 100
         phase_rad  = np.deg2rad(df_site['phase_degrees'].to_numpy())
@@ -129,64 +142,22 @@ def figure_2b(ax,path_csv = 'data/ticon/TICON.txt', path_png = None):
         t = np.arange(0, tf + dt, dt)
         
         w = (amplitude_m[np.newaxis, :] * np.cos(t[:, np.newaxis]*2*np.pi/period_hr[np.newaxis, :] + phase_rad[np.newaxis, :])).sum(axis = 1)
+        tidal_range = calculate_tidal_range(w)
+        w = w/tidal_range
 
         return t, w
 
-    def add_aslc(time, waterlevel, amplitude_annual_m):
+    def add_aslc(time, waterlevel, amplitude_annual_m, phase):
 
         period_annual_hr = 365.25 * 24
-        waterlevel_new = waterlevel + amplitude_annual_m * np.cos(time*2*np.pi/period_annual_hr)
+        waterlevel_new = waterlevel + amplitude_annual_m * np.cos(time*2*np.pi/period_annual_hr + phase)
 
         return waterlevel_new
 
-    def plot_test_figure(ax,elevation, emergence_freq, inundation_freq):
-
-        def identify_intertidal_zones(elevation, emergence_freq, inundation_freq):
-
-            supratidal_boundary = elevation[(inundation_freq >= 0.01).argmin()]
-            upper_intertidal_boundary = elevation[(inundation_freq <= 0.99).argmax()]
-            lower_intertidal_boundary = elevation[(emergence_freq <= 0.99).argmin()]
-            subtidal_boundary = elevation[(emergence_freq >= 0.01).argmax()]
-            print(supratidal_boundary, upper_intertidal_boundary, lower_intertidal_boundary, subtidal_boundary)
-            return supratidal_boundary, upper_intertidal_boundary, lower_intertidal_boundary, subtidal_boundary
-
-        for i in range(emergence_freq.shape[0]):
-
-            supratidal_boundary, upper_intertidal_boundary, lower_intertidal_boundary, subtidal_boundary = identify_intertidal_zones(elevation, emergence_freq[i,:], inundation_freq[i,:])
-            upper_intertidal = ((inundation_freq[i,:] < 0.99) & (inundation_freq[i,:] > 0.01))
-            lower_intertidal = ((emergence_freq[i,:] < 0.99) & (emergence_freq[i,:] > 0.01))
-
-            ax.fill_between(elevation, upper_intertidal, color = 'orange', alpha = 0.05)
-            ax.fill_between(elevation, lower_intertidal, color = 'blue', alpha = 0.05)
-
-            if i == 0:
-                ax.plot(elevation, emergence_freq[i,:], c = 'blue', alpha = 1, label = 'Emergence')
-                ax.plot(elevation, inundation_freq[i,:], c = 'orange', alpha = 1, label = 'Inundation')
-
-                ax.plot([lower_intertidal_boundary, upper_intertidal_boundary], [-0.02,-0.02], alpha = 1, c = 'black')
-                ax.plot([supratidal_boundary, upper_intertidal_boundary], [1.035,1.035], alpha = 1, c = 'orange')
-                ax.plot([lower_intertidal_boundary, subtidal_boundary], [1.02,1.02], alpha = 1, c = 'blue')
-            else:
-                ax.plot(elevation, emergence_freq[i,:], c = 'blue', alpha = 0.5, linestyle = 'dashed')
-                ax.plot(elevation, inundation_freq[i,:], c = 'orange', alpha = 0.5, linestyle = 'dashed')
-
-                ax.plot([lower_intertidal_boundary, upper_intertidal_boundary], [-0.02,-0.02], c = 'black', alpha = 0.5, linestyle = 'dashed')
-                ax.plot([supratidal_boundary, upper_intertidal_boundary], [1.035,1.035], c = 'orange', alpha = 0.5, linestyle = 'dashed')
-                ax.plot([lower_intertidal_boundary, subtidal_boundary], [1.02,1.02], c = 'blue', alpha = 0.5, linestyle = 'dashed')
-
-        ax.set_ylabel('Frequency of inundation/emergence [-]', fontsize = 12)
-        ax.set_xlabel('Deviation from MSL / Tidal range [-]', fontsize = 12)
-        ax.legend(frameon = False, fontsize = 11)
-        # plt.ylim(-0.17,1.17)
-        # plt.yticks(np.arange(0,1 + 0.2,0.2))
-        # plt.xlim(-3.4, 3.4)
-        #plt.show()
-
-    def plot_boxplot_figure(ax,elevation, emergence_freq, inundation_freq, path_png):
+    def add_boxplot(ax, pos, elevation, emergence_freq, inundation_freq, path_png = None):
     
         dz = np.round(np.diff(elevation).mean(), 3)    
 
-        #fig, ax = plt.subplots()
         for i in range(emergence_freq.shape[0]):
             upper_intertidal         = (emergence_freq [i,:] > 0.99) & ((inundation_freq[i,:] < 0.99) & (inundation_freq[i,:] > 0.01))
             intermediate_intertidal  = (inundation_freq[i,:] > 0.99) & (emergence_freq [i,:] > 0.99)
@@ -195,39 +166,56 @@ def figure_2b(ax,path_csv = 'data/ticon/TICON.txt', path_png = None):
 
             y = np.cumsum([0, lower_intertidal.sum(), intermediate_intertidal.sum(), transitioning_intertidal.sum(), upper_intertidal.sum()])*dz
             y -= y.max()/2
-            lower = Rectangle((i*0.125 - 0.1, y[0]), 0.1, y[1] - y[0], edgecolor = (0.0, 0.0, 1.0, 1),   facecolor = (0.0, 0.0, 1.0, 0.1), lw = 2)
+            lower = Rectangle((i*0.125 - 0.1 + pos*0.5, y[0]), 0.1, y[1] - y[0], edgecolor = (0.0, 0.0, 1.0, 1),   facecolor = (0.0, 0.0, 1.0, 0.1), lw = 2)
             ax.add_patch(lower)
-            upper = Rectangle((i*0.125 - 0.1, y[3]), 0.1, y[4] - y[3], edgecolor = (1.0, 0.647, 0.0, 1), facecolor = (1.0, 0.647, 0.0, 0.1), lw = 2)
+            upper = Rectangle((i*0.125 - 0.1 + pos*0.5, y[3]), 0.1, y[4] - y[3], edgecolor = (1.0, 0.647, 0.0, 1), facecolor = (1.0, 0.647, 0.0, 0.1), lw = 2)
             ax.add_patch(upper)
             if (y[2] - y[1]) > 0:
-                inter = Rectangle((i*0.125 - 0.1, y[1]), 0.1, y[2] - y[1], edgecolor = (0.5, 0.5, 0.5, 1),   facecolor = (0.5, 0.5, 0.5, 0.1), lw = 2)
+                inter = Rectangle((i*0.125 - 0.1 + pos*0.5, y[1]), 0.1, y[2] - y[1], edgecolor = (0.5, 0.5, 0.5, 1),   facecolor = (0.5, 0.5, 0.5, 0.1), lw = 2)
                 ax.add_patch(inter)
             if (y[3] - y[2]) > 0:
-                trans = Rectangle((i*0.125 - 0.1, y[1]), 0.1, y[3] - y[2], edgecolor = (0.1, 0.1, 0.1, 1),   facecolor = (0.1, 0.1, 0.1, 0.4), lw = 2)
+                trans = Rectangle((i*0.125 - 0.1 + pos*0.5, y[1]), 0.1, y[3] - y[2], edgecolor = (0.1, 0.1, 0.1, 1),   facecolor = (0.1, 0.1, 0.1, 0.4), lw = 2)
                 ax.add_patch(trans)
-        ax.set_ylim(elevation.min(), elevation.max())
-        ax.set_xlim(-1, 1)
-        ax.set_xticks(ticks = [0], labels = ['Mediterranean Sea'])
-        ax.set_ylabel('Deviation from MSL / Tidal range [-]', fontsize = 12)
-        ax.set_xlabel('Location', fontsize = 12)
-        #if path_png is not None:
-        #    plt.savefig(path_png, dpi = 300)
-        #plt.show()
 
-    time, waterlevel = create_ticon_timeseries(path_csv)
-    waterlevel_t0 = add_aslc(time, waterlevel, amplitude_annual_m = 0)
-    waterlevel_t1 = add_aslc(time, waterlevel, amplitude_annual_m = 1)
+    rows, cols = 1, 1
+    fig = plt.figure(figsize=((6.4 + 0.3)*cols,(4.8 + 0.3)*rows))
+    gs1 = fig.add_gridspec(rows,cols,hspace=.15, wspace=.15) #define subplot grid
+    ax = fig.add_subplot(gs1[0,0])
 
-    dt = np.diff(time).mean()
-    _, low_waterlevel_0, high_waterlevel_0 = f.calculate_highlow_water(waterlevel_t0, dt = dt, plot = False)
-    _, low_waterlevel_1, high_waterlevel_1 = f.calculate_highlow_water(waterlevel_t1, dt = dt, plot = False)
-    elevation, emergence_freq_0, inundation_freq_0 = f.calculate_inundation_metrics(low_waterlevel_0, high_waterlevel_0, dz = 0.01, plot = False)
-    _,         emergence_freq_1, inundation_freq_1 = f.calculate_inundation_metrics(low_waterlevel_1, high_waterlevel_1, dz = 0.01, plot = False)
-    emergence_freq = np.vstack((emergence_freq_0, emergence_freq_1))
-    inundation_freq = np.vstack((inundation_freq_0, inundation_freq_1))
+    for i in range(3):
 
-    #plot_test_figure(ax,elevation, emergence_freq, inundation_freq)
-    plot_boxplot_figure(ax,elevation, emergence_freq, inundation_freq, path_png)
+        if i == 0:
+            lat, lon, future_aslc_change, phase = -17.533, -149.573, 0.0724, 0.25*2*np.pi
+        elif i == 1:
+            lat, lon, future_aslc_change, phase =  41.342,    2.166, 0.1192, 0.7*2*np.pi
+        elif i == 2:
+            lat, lon, future_aslc_change, phase =  35.548,  133.243, 0.0603, 0.65*2*np.pi
 
-#figure_2a(path_bin = './bin/figure_2/figure_2a.npy', path_png = './figures/figure_2/figure_2a.png', run = False)
-#figure_2b(path_csv = './data/ticon/TICON.txt', path_png = './figures/figure_2/figure_2b.png')
+        time, waterlevel_t0 = create_ticon_timeseries(path_csv, lat, lon)
+        waterlevel_t1 = add_aslc(time, waterlevel_t0, amplitude_annual_m = future_aslc_change, phase = phase)
+
+        dt = np.diff(time).mean()
+        _, low_waterlevel_0, high_waterlevel_0 = f.calculate_highlow_water(waterlevel_t0, dt = dt, plot = False)
+        _, low_waterlevel_1, high_waterlevel_1 = f.calculate_highlow_water(waterlevel_t1, dt = dt, plot = False)
+        elevation, emergence_freq_0, inundation_freq_0 = f.calculate_inundation_metrics(low_waterlevel_0, high_waterlevel_0, dz = 0.01, plot = False)
+        _,         emergence_freq_1, inundation_freq_1 = f.calculate_inundation_metrics(low_waterlevel_1, high_waterlevel_1, dz = 0.01, plot = False)
+        emergence_freq = np.vstack((emergence_freq_0, emergence_freq_1))
+        inundation_freq = np.vstack((inundation_freq_0, inundation_freq_1))
+
+        add_boxplot(ax, i, elevation, emergence_freq, inundation_freq, path_png)
+
+    # ax.set_ylim(elevation.min(), elevation.max())
+    ax.set_ylim(-1.6, 1.6)
+    ax.set_xlim(-0.5, 1.5)
+    ax.set_xticks(ticks = [0*0.5,1*0.5,2*0.5], labels = ['Pacific', 'Mediterranean Sea', 'Japan Sea'])
+    ax.set_ylabel('Deviation from MSL / Tidal range [-]', fontsize = 12)
+    ax.set_xlabel('Location', fontsize = 12)
+    ax.plot([-0.5, 1.5], [0.5,0.5])
+    ax.plot([-0.5, 1.5], [-0.5,-0.5])
+    if path_png is not None:
+        plt.savefig(path_png, dpi = 300)
+    plt.show()
+
+ax = None
+#figure_2a(ax, path_bin = './bin/figure_2/figure_2a.npy', path_png = './figures/figure_2/figure_2a.png', run = False)
+figure_2c(ax, path_csv = './data/ticon/TICON.txt', path_png = './figures/figure_2/figure_2b.png')
