@@ -1,8 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-# sigma = 0.112, rho = 0.005
-# sigma = 0.025, rho = 0.021
-# 0.007
 
 def create_waterlevel_timeseries(tidal_amplitude = 1, amplitude_annual_cycle = 0, amplitude_M2 = 1, amplitude_S2 = 0.4, sigma = 0.007, rho = 0.005, mean_waterlevel = 0, n_years = 1, dt = 60/60, plot = False):
 
@@ -25,15 +22,11 @@ def create_waterlevel_timeseries(tidal_amplitude = 1, amplitude_annual_cycle = 0
     period_S2       = 12    # S2 period (h)
     period_annual   = 365.25 * 24 # (h)
 
-    # # Stochastic parameters
-    # sigma           = 0.025 * tidal_amplitude # (m hr^-0.5)
-    # rho             = 0.021 # (  hr^-1  )
-
-    # # Re-scale sigma when rho is manipulated to maintain constant std(w)
-    # rho_default = 0.069
-    # if rho != rho_default:
-    #     std_w = sigma * tidal_amplitude / np.sqrt(2 * rho_default)
-    #     sigma = std_w * np.sqrt(2 * rho) / tidal_amplitude
+    # Re-scale sigma when rho is manipulated to maintain constant std(w) [Part of Supp Note 2]
+    rho_default = 0.005
+    if rho != rho_default:
+        std_w = sigma * tidal_amplitude / np.sqrt(2 * rho_default)
+        sigma = std_w * np.sqrt(2 * rho) / tidal_amplitude
 
     mean_waterlevel = mean_waterlevel + (amplitude_annual_cycle*np.cos(time*2*np.pi/period_annual))
     waterlevel_periodic = tidal_amplitude/np.sqrt(amplitude_M2**2 + amplitude_S2**2)*(amplitude_M2*np.cos(time*2*np.pi/period_M2) + amplitude_S2*np.cos(time*2*np.pi/period_S2))
