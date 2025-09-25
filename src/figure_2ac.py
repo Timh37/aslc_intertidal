@@ -4,7 +4,7 @@ from matplotlib.patches import Rectangle
 import pandas as pd
 import src.functions as f
 
-def figure_2a(ax, path_bin = './bin/figure_2/figure_2a.npy', path_png = None, run = False):
+def figure_2a(ax, path_bin = './bin/figure_2/figure_2a-barcelona.npy', run = False):
 
     def run_simulation_figure_2(path_bin):
 
@@ -14,7 +14,6 @@ def figure_2a(ax, path_bin = './bin/figure_2/figure_2a.npy', path_png = None, ru
                 return np.argmin(np.abs(seq - x))
 
             _, water_level, _ = f.create_waterlevel_timeseries(amplitude_annual_cycle = amplitude_annual_cycle, n_years = n_years)
-            water_level = water_level/2 # Convert from amplitude to tidal range
             _, low_waterlevel, high_waterlevel = f.calculate_highlow_water(water_level)
             elevation, emergence_freq, inundation_freq = f.calculate_inundation_metrics(low_waterlevel, high_waterlevel, dz)
 
@@ -27,7 +26,7 @@ def figure_2a(ax, path_bin = './bin/figure_2/figure_2a.npy', path_png = None, ru
 
             return total_intertidal, supratidal_boundary, upper_intertidal_boundary, lower_intertidal_boundary, subtidal_boundary
 
-        n_years = 50
+        n_years = 200
         n = 100
         amplitude_annual_cycle = np.linspace(0, 1.5, n)
         total_intertidal          = np.array([np.nan]*n)
@@ -41,7 +40,7 @@ def figure_2a(ax, path_bin = './bin/figure_2/figure_2a.npy', path_png = None, ru
 
         np.save(path_bin, (amplitude_annual_cycle, total_intertidal, supratidal_boundary, upper_intertidal_boundary, lower_intertidal_boundary, subtidal_boundary))
 
-    def plot_figure_2(ax,path_bin, path_png):
+    def plot_figure_2(ax,path_bin):
 
         amplitude_annual_cycle, total_intertidal, supratidal_boundary, upper_intertidal_boundary, lower_intertidal_boundary, subtidal_boundary = np.load(path_bin)
 
@@ -82,29 +81,35 @@ def figure_2a(ax, path_bin = './bin/figure_2/figure_2a.npy', path_png = None, ru
         ax.set_ylabel('Deviation from MSL / Tidal range [-]', fontsize = 12)
         ax.set_xlabel('ASLC range / Tidal range [-]', fontsize = 12)
         ax.set_ylim(-2.1, 2.1)
-        #if path_png is not None:
-        #    plt.savefig(path_png, dpi = 300)
-        #plt.show()
 
     if run:
         run_simulation_figure_2(path_bin)
-    plot_figure_2(ax,path_bin, path_png)
+    plot_figure_2(ax,path_bin)
 
-def figure_2c(ax, path_csv = 'data/ticon/TICON.txt', path_png = None):
+def figure_2c(ax, path_csv = 'data/ticon/TICON.txt'):
 
     def create_ticon_timeseries(path_csv, lat, lon):
 
-        def calculate_tidal_range(w):
+        def find_tidal_range(w, dt):
 
-            nx = 149
-            ny = int(np.floor(w.size/nx))
-            w = w[:(nx*ny)].reshape(nx,ny)
-            lwl = w.min(axis = 0)
-            hwl = w.max(axis = 0)
-            tidal_amplitude = np.mean(hwl - lwl)
-            print(tidal_amplitude)
+            if dt != 5/60:
+                # Interpolate to 5 min measuring interval so 745 min tidal interval can be divided evenly
+                t = np.arange(0, w.size, 1) * dt
+                tp = np.arange(0, t.max(), 5/60)
+                w = np.interp(x = tp, xp = t, fp = w)
 
-            return tidal_amplitude
+            # Reshape water level time series into stacked array of n tidal cycles (each 149 measurements long at dt = 5/60)
+            n_measurements_per_tide = int((745/60) / (5/60))
+            n_tides = int(np.floor(w.size/n_measurements_per_tide))
+            w = w[:int(n_tides*n_measurements_per_tide)]
+            w = w.reshape(n_tides, n_measurements_per_tide)
+
+            # Calcualte high & low water level of each tidal cycle, and from that calculate the avg. tidal range
+            high_water_level = w.max(axis = 1)
+            low_water_level = w.min(axis = 1)
+            tidal_range = (high_water_level - low_water_level)
+
+            return tidal_range.mean()
 
         tidal_constants = np.array([
             'M2', 'K1', 'N2', 'O1', 'P1', 'Q1', 'K2', 'S2', 'S1', 'SA', 'T2', 'MF', 'MM',
@@ -125,7 +130,6 @@ def figure_2c(ax, path_csv = 'data/ticon/TICON.txt', path_png = None):
 
         df['site_id'] = df.groupby(['latitude', 'longitude', 'data_source', 'start_date', 'end_date']).ngroup()
         site_list = np.unique(df['site_id'])
-        n_sites = site_list.size
 
         def closest_to(x0, y0, x1, y1):
             return np.argmin(np.sqrt((x1 - x0)**2 + (y1 - y0)**2))
@@ -133,28 +137,39 @@ def figure_2c(ax, path_csv = 'data/ticon/TICON.txt', path_png = None):
 
         site = df['site_id'] == df['site_id'][idx]
         df_site = df[site]
+        df_site.loc[df['tidal_constituent'] == 'SA', 'amplitude_cm'] = 0 
+        df_site.loc[df['tidal_constituent'] == 'SSA', 'amplitude_cm'] = 0 
         amplitude_m  = df_site['amplitude_cm'].to_numpy() / 100
         phase_rad  = np.deg2rad(df_site['phase_degrees'].to_numpy())
 
-        n_years = 10
+        n_years = 2
         dt = 5/60
         tf    = 365.25 * 24 * n_years # 1 year (in hours)
         t = np.arange(0, tf + dt, dt)
         
         w = (amplitude_m[np.newaxis, :] * np.cos(t[:, np.newaxis]*2*np.pi/period_hr[np.newaxis, :] + phase_rad[np.newaxis, :])).sum(axis = 1)
-        tidal_range = calculate_tidal_range(w)
-        w = w/tidal_range
+        tidal_range = find_tidal_range(w, dt)
 
-        return t, w
+        return t, w, tidal_range
 
-    def add_aslc(time, waterlevel, amplitude_annual_m, phase):
+    def generate_aslc(time, amplitude_annual_m, phase):
 
         period_annual_hr = 365.25 * 24
-        waterlevel_new = waterlevel + amplitude_annual_m * np.cos(time*2*np.pi/period_annual_hr + phase)
+        annual_sea_level_cycle = amplitude_annual_m * np.cos(time*2*np.pi/period_annual_hr + phase)
 
-        return waterlevel_new
+        return annual_sea_level_cycle
 
-    def add_boxplot(ax, pos, elevation, emergence_freq, inundation_freq, path_png = None):
+    def generate_oun(nt, sigma, rho, dt, xmean = 0):
+
+        r = np.random.normal(size = nt)
+        x = np.array([np.nan]*nt)
+        x[0] = xmean
+        for t in range(1, nt):
+            x[t] = x[t - 1] + sigma*np.sqrt(dt)*r[t] + rho*(xmean - x[t - 1])*dt
+
+        return x
+
+    def add_boxplot(ax, pos, elevation, emergence_freq, inundation_freq):
     
         dz = np.round(np.diff(elevation).mean(), 3)    
 
@@ -177,45 +192,36 @@ def figure_2c(ax, path_csv = 'data/ticon/TICON.txt', path_png = None):
                 trans = Rectangle((i*0.125 - 0.1 + pos*0.5, y[1]), 0.1, y[3] - y[2], edgecolor = (0.1, 0.1, 0.1, 1),   facecolor = (0.1, 0.1, 0.1, 0.4), lw = 2)
                 ax.add_patch(trans)
 
-    rows, cols = 1, 1
-    fig = plt.figure(figsize=((6.4 + 0.3)*cols,(4.8 + 0.3)*rows))
-    gs1 = fig.add_gridspec(rows,cols,hspace=.15, wspace=.15) #define subplot grid
-    ax = fig.add_subplot(gs1[0,0])
+    ax.set_ylim(-4.1, 4.1)
+    ax.set_xlim(-0.5, 1.5)
+    ax.set_xticks(ticks = [0*0.5,1*0.5,2*0.5], labels = ['Papeete', 'Barcelona', 'Sakai'])
+    ax.set_ylabel('Deviation from MSL / Tidal range [-]', fontsize = 12)
+    ax.set_xlabel('Location', fontsize = 12)
 
     for i in range(3):
 
         if i == 0:
-            lat, lon, future_aslc_change, phase = -17.533, -149.573, 0.0724, 0.25*2*np.pi
+            lat, lon, historical_aslc, future_aslc_change, phase, sigma, rho = -17.533, -149.573, 0.0567, 0.0260, 0.25*2*np.pi, 0.013, 0.079
         elif i == 1:
-            lat, lon, future_aslc_change, phase =  41.342,    2.166, 0.1192, 0.7*2*np.pi
+            lat, lon, historical_aslc, future_aslc_change, phase, sigma, rho =  41.342,    2.166, 0.1160, 0.0282, 0.70*2*np.pi, 0.007, 0.005
         elif i == 2:
-            lat, lon, future_aslc_change, phase =  35.548,  133.243, 0.0603, 0.65*2*np.pi
+            lat, lon, historical_aslc, future_aslc_change, phase, sigma, rho =  35.548,  133.243, 0.3650, 0.0246, 0.65*2*np.pi, 0.010, 0.006
 
-        time, waterlevel_t0 = create_ticon_timeseries(path_csv, lat, lon)
-        waterlevel_t1 = add_aslc(time, waterlevel_t0, amplitude_annual_m = future_aslc_change, phase = phase)
+        time, waterlevel, tidal_range = create_ticon_timeseries(path_csv, lat, lon)
+        historical_annual_sealevel_cycle = generate_aslc(time, amplitude_annual_m = historical_aslc, phase = phase)
+        future_annual_sealevel_cycle = generate_aslc(time, amplitude_annual_m = historical_aslc + future_aslc_change, phase = phase)
+        w_stochastic = generate_oun(time.size, sigma, rho, dt = np.diff(time).mean(), xmean = 0)
+
+        # Add components & rescale to tidal range
+        waterlevel_t0 = (waterlevel + historical_annual_sealevel_cycle + w_stochastic)/tidal_range
+        waterlevel_t1 = (waterlevel + future_annual_sealevel_cycle + w_stochastic)/tidal_range
 
         dt = np.diff(time).mean()
-        _, low_waterlevel_0, high_waterlevel_0 = f.calculate_highlow_water(waterlevel_t0, dt = dt, plot = False)
-        _, low_waterlevel_1, high_waterlevel_1 = f.calculate_highlow_water(waterlevel_t1, dt = dt, plot = False)
-        elevation, emergence_freq_0, inundation_freq_0 = f.calculate_inundation_metrics(low_waterlevel_0, high_waterlevel_0, dz = 0.01, plot = False)
-        _,         emergence_freq_1, inundation_freq_1 = f.calculate_inundation_metrics(low_waterlevel_1, high_waterlevel_1, dz = 0.01, plot = False)
+        _, low_waterlevel_0, high_waterlevel_0 = f.calculate_highlow_water(waterlevel_t0, dt)
+        _, low_waterlevel_1, high_waterlevel_1 = f.calculate_highlow_water(waterlevel_t1, dt)
+        elevation, emergence_freq_0, inundation_freq_0 = f.calculate_inundation_metrics(low_waterlevel_0, high_waterlevel_0, dz = 0.01)
+        _,         emergence_freq_1, inundation_freq_1 = f.calculate_inundation_metrics(low_waterlevel_1, high_waterlevel_1, dz = 0.01)
         emergence_freq = np.vstack((emergence_freq_0, emergence_freq_1))
         inundation_freq = np.vstack((inundation_freq_0, inundation_freq_1))
 
-        add_boxplot(ax, i, elevation, emergence_freq, inundation_freq, path_png)
-
-    # ax.set_ylim(elevation.min(), elevation.max())
-    ax.set_ylim(-1.6, 1.6)
-    ax.set_xlim(-0.5, 1.5)
-    ax.set_xticks(ticks = [0*0.5,1*0.5,2*0.5], labels = ['Pacific', 'Mediterranean Sea', 'Japan Sea'])
-    ax.set_ylabel('Deviation from MSL / Tidal range [-]', fontsize = 12)
-    ax.set_xlabel('Location', fontsize = 12)
-    ax.plot([-0.5, 1.5], [0.5,0.5])
-    ax.plot([-0.5, 1.5], [-0.5,-0.5])
-    if path_png is not None:
-        plt.savefig(path_png, dpi = 300)
-    plt.show()
-
-ax = None
-#figure_2a(ax, path_bin = './bin/figure_2/figure_2a.npy', path_png = './figures/figure_2/figure_2a.png', run = False)
-figure_2c(ax, path_csv = './data/ticon/TICON.txt', path_png = './figures/figure_2/figure_2b.png')
+        add_boxplot(ax, i, elevation, emergence_freq, inundation_freq)

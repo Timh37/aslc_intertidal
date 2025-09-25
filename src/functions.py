@@ -1,7 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
+# sigma = 0.112, rho = 0.005
+# sigma = 0.025, rho = 0.021
+# 0.007
 
-def create_waterlevel_timeseries(tidal_amplitude = 1, amplitude_annual_cycle = 0, amplitude_M2 = 1, amplitude_S2 = 0.4, sigma = 0.025, rho = 0.021, mean_waterlevel = 0, n_years = 1, dt = 5/60, plot = False):
+def create_waterlevel_timeseries(tidal_amplitude = 1, amplitude_annual_cycle = 0, amplitude_M2 = 1, amplitude_S2 = 0.4, sigma = 0.007, rho = 0.005, mean_waterlevel = 0, n_years = 1, dt = 60/60, plot = False):
 
     def generate_oun(nt, sigma, rho, dt, xmean = 0):
 
@@ -26,16 +29,23 @@ def create_waterlevel_timeseries(tidal_amplitude = 1, amplitude_annual_cycle = 0
     # sigma           = 0.025 * tidal_amplitude # (m hr^-0.5)
     # rho             = 0.021 # (  hr^-1  )
 
-    # Re-scale sigma when rho is manipulated to maintain constant std(w)
-    rho_default = 0.021
-    if rho != rho_default:
-        std_w = sigma * tidal_amplitude / np.sqrt(2 * rho_default)
-        sigma = std_w * np.sqrt(2 * rho) / tidal_amplitude
+    # # Re-scale sigma when rho is manipulated to maintain constant std(w)
+    # rho_default = 0.069
+    # if rho != rho_default:
+    #     std_w = sigma * tidal_amplitude / np.sqrt(2 * rho_default)
+    #     sigma = std_w * np.sqrt(2 * rho) / tidal_amplitude
 
-    waterlevel_periodic = mean_waterlevel + tidal_amplitude/np.sqrt(amplitude_M2**2 + amplitude_S2**2)*(amplitude_M2*np.cos(time*2*np.pi/period_M2) + amplitude_S2*np.cos(time*2*np.pi/period_S2)) + (amplitude_annual_cycle*np.cos(time*2*np.pi/period_annual))    
-    waterlevel_stochastic = generate_oun(nt, sigma * tidal_amplitude, rho, dt, xmean = 0)
-    waterlevel = waterlevel_periodic + waterlevel_stochastic
-    mean_waterlevel = mean_waterlevel + (amplitude_annual_cycle*np.cos(time*2*np.pi/period_annual))   
+    mean_waterlevel = mean_waterlevel + (amplitude_annual_cycle*np.cos(time*2*np.pi/period_annual))
+    waterlevel_periodic = tidal_amplitude/np.sqrt(amplitude_M2**2 + amplitude_S2**2)*(amplitude_M2*np.cos(time*2*np.pi/period_M2) + amplitude_S2*np.cos(time*2*np.pi/period_S2))
+
+    # Scale water level to tidal range
+    mean_waterlevel = mean_waterlevel * tidal_amplitude/2
+    waterlevel_periodic = waterlevel_periodic * tidal_amplitude/2
+
+    # Add stochastic constituent
+    waterlevel_stochastic = generate_oun(nt, sigma, rho, dt, xmean = 0)
+
+    waterlevel = mean_waterlevel + waterlevel_periodic + waterlevel_stochastic
 
     if plot:
         plt.plot(time/24, waterlevel, c = 'blue', alpha = 0.3)
@@ -47,7 +57,7 @@ def create_waterlevel_timeseries(tidal_amplitude = 1, amplitude_annual_cycle = 0
 
     return time, waterlevel, mean_waterlevel
 
-def calculate_highlow_water(waterlevel, dt = 5/60, plot = False):
+def calculate_highlow_water(waterlevel, dt = 60/60, plot = False):
     '''
     Calculates the maximum and minimum waterlevel of each tidal cycle from an input waterlevel timeseries
     
@@ -95,8 +105,7 @@ def calculate_highlow_water(waterlevel, dt = 5/60, plot = False):
 
 def calculate_inundation_metrics(low_waterlevel, high_waterlevel, dz = 0.001, plot = False):
 
-    tidal_amplitude = high_waterlevel.mean() - low_waterlevel.mean()
-    elevation_bins = np.arange((-2.8 * tidal_amplitude) - dz/2, (2.8 * tidal_amplitude) + dz/2 + dz, dz)
+    elevation_bins = np.arange(-5 - dz/2, 5 + dz/2 + dz, dz)
     elevation = (elevation_bins[1:] + elevation_bins[:-1])/2
 
     counts, _ = np.histogram(high_waterlevel, bins = elevation_bins)
@@ -114,3 +123,7 @@ def calculate_inundation_metrics(low_waterlevel, high_waterlevel, dz = 0.001, pl
         plt.show()
 
     return elevation, emergence_freq, inundation_freq
+
+# time, waterlevel, mean_waterlevel = create_waterlevel_timeseries(plot = True)
+# tidal_cycle, low_waterlevel, high_waterlevel = calculate_highlow_water(waterlevel, dt = 5/60, plot = True)
+# elevation, emergence_freq, inundation_freq = calculate_inundation_metrics(low_waterlevel, high_waterlevel, dz = 0.001, plot = True)
