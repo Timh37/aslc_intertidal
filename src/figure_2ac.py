@@ -58,13 +58,13 @@ def figure_2a(ax, path_bin = './bin/figure_2/figure_2a-barcelona.npy', run = Fal
             return np.argmin(np.abs(seq - x))
         
         transition_point = amplitude_annual_cycle[closest_to(upper_intertidal_boundary, 0)]
-
+        plt.rcParams["hatch.linewidth"] = 4
         ax.fill_between(x = amplitude_annual_cycle[amplitude_annual_cycle <= transition_point], 
                         y1 = (upper_intertidal_boundary)[amplitude_annual_cycle <= transition_point], 
                         y2 = (lower_intertidal_boundary)[amplitude_annual_cycle <= transition_point], color = 'grey', alpha = 0.2)
         ax.fill_between(x = amplitude_annual_cycle[amplitude_annual_cycle > transition_point], 
                         y1 = (upper_intertidal_boundary)[amplitude_annual_cycle > transition_point], 
-                        y2 = (lower_intertidal_boundary)[amplitude_annual_cycle > transition_point], color = 'grey', alpha = 0.7)
+                        y2 = (lower_intertidal_boundary)[amplitude_annual_cycle > transition_point], edgecolor = (0.0, 0.0, 1.0, 0.1),   facecolor = (1.0, 0.647, 0.0, 0.1),hatch=r"//")
         ax.fill_between(x = amplitude_annual_cycle, 
                         y1 = (supratidal_boundary), 
                         y2 = np.maximum(lower_intertidal_boundary, upper_intertidal_boundary), color = 'orange', alpha = 0.2)
@@ -86,7 +86,7 @@ def figure_2a(ax, path_bin = './bin/figure_2/figure_2a-barcelona.npy', run = Fal
         run_simulation_figure_2(path_bin)
     plot_figure_2(ax,path_bin)
 
-def figure_2c(ax, path_csv = 'data/ticon/TICON.txt'):
+def figure_2c(ax, path_csv = 'data/ticon/TICON.txt',return_output = False):
 
     def create_ticon_timeseries(path_csv, lat, lon):
 
@@ -172,34 +172,42 @@ def figure_2c(ax, path_csv = 'data/ticon/TICON.txt'):
     def add_boxplot(ax, pos, elevation, emergence_freq, inundation_freq):
     
         dz = np.round(np.diff(elevation).mean(), 3)    
-
+        y_s= []
         for i in range(emergence_freq.shape[0]):
             upper_intertidal         = (emergence_freq [i,:] > 0.99) & ((inundation_freq[i,:] < 0.99) & (inundation_freq[i,:] > 0.01))
             intermediate_intertidal  = (inundation_freq[i,:] > 0.99) & (emergence_freq [i,:] > 0.99)
             lower_intertidal         = ((emergence_freq [i,:] < 0.99) & (emergence_freq [i,:] > 0.01)) & (inundation_freq[i,:] > 0.99)
             transitioning_intertidal = ((inundation_freq[i,:] < 0.99) & (inundation_freq[i,:] > 0.01)) & ((emergence_freq [i,:] < 0.99) & (emergence_freq [i,:] > 0.01))
-
+        
             y = np.cumsum([0, lower_intertidal.sum(), intermediate_intertidal.sum(), transitioning_intertidal.sum(), upper_intertidal.sum()])*dz
             y -= y.max()/2
+            y_s.append(y)
             lower = Rectangle((i*0.125 - 0.1 + pos*0.5, y[0]), 0.1, y[1] - y[0], edgecolor = (0.0, 0.0, 1.0, 1),   facecolor = (0.0, 0.0, 1.0, 0.1), lw = 2)
             ax.add_patch(lower)
+            if i==1:
+                ax.text(i*0.125 + pos*0.5 + .02,y[0]+.5*(y[1] - y[0]),
+                        '{0:.1f}'.format(100*((y_s[1][1] - y_s[1][0])-(y_s[0][1] - y_s[0][0]))/(y_s[0][1] - y_s[0][0]))+'%',
+                        color=(0.0, 0.0, 1.0, 1))
+            
             upper = Rectangle((i*0.125 - 0.1 + pos*0.5, y[3]), 0.1, y[4] - y[3], edgecolor = (1.0, 0.647, 0.0, 1), facecolor = (1.0, 0.647, 0.0, 0.1), lw = 2)
             ax.add_patch(upper)
+            plt.rcParams["hatch.linewidth"] = 4
             if (y[2] - y[1]) > 0:
                 inter = Rectangle((i*0.125 - 0.1 + pos*0.5, y[1]), 0.1, y[2] - y[1], edgecolor = (0.5, 0.5, 0.5, 1),   facecolor = (0.5, 0.5, 0.5, 0.1), lw = 2)
                 ax.add_patch(inter)
             if (y[3] - y[2]) > 0:
-                trans = Rectangle((i*0.125 - 0.1 + pos*0.5, y[1]), 0.1, y[3] - y[2], edgecolor = (0.1, 0.1, 0.1, 1),   facecolor = (0.1, 0.1, 0.1, 0.4), lw = 2)
+                trans = Rectangle((i*0.125 - 0.1 + pos*0.5, y[1]), 0.1, y[3] - y[2], edgecolor = (0.0, 0.0, 1.0, 0.1),   facecolor = (1.0, 0.647, 0.0, 0.1), lw = 2, hatch=r"//")
                 ax.add_patch(trans)
-
+            ax.axhline(y=0,color='black',linewidth=.5,linestyle='dashed',zorder=0)
+        return y_s
     ax.set_ylim(-4.1, 4.1)
     ax.set_xlim(-0.5, 1.5)
     ax.set_xticks(ticks = [0*0.5,1*0.5,2*0.5], labels = ['Papeete', 'Barcelona', 'Sakai'])
     ax.set_ylabel('Deviation from MSL / Tidal range [-]', fontsize = 12)
     ax.set_xlabel('Location', fontsize = 12)
-
+    y_s=[]
     for i in range(3):
-
+    
         if i == 0:
             lat, lon, historical_aslc, future_aslc_change, phase, sigma, rho = -17.533, -149.573, 0.0567, 0.0260, 0.25*2*np.pi, 0.013, 0.079
         elif i == 1:
@@ -224,4 +232,8 @@ def figure_2c(ax, path_csv = 'data/ticon/TICON.txt'):
         emergence_freq = np.vstack((emergence_freq_0, emergence_freq_1))
         inundation_freq = np.vstack((inundation_freq_0, inundation_freq_1))
 
-        add_boxplot(ax, i, elevation, emergence_freq, inundation_freq)
+        y = add_boxplot(ax, i, elevation, emergence_freq, inundation_freq)
+        y_s.append(y)
+    if return_output:
+        return y_s
+        
