@@ -22,11 +22,11 @@ def create_waterlevel_timeseries(tidal_amplitude = 1, amplitude_annual_cycle = 0
     period_S2       = 12    # S2 period (h)
     period_annual   = 365.25 * 24 # (h)
 
-    # Re-scale sigma when rho is manipulated to maintain constant std(w) [Part of Supp Note 2]
-    rho_default = 0.005
-    if rho != rho_default:
-        std_w = sigma * tidal_amplitude / np.sqrt(2 * rho_default)
-        sigma = std_w * np.sqrt(2 * rho) / tidal_amplitude
+    # # Re-scale sigma when rho is manipulated to maintain constant std(w) [Part of Supp Note 2]
+    # rho_default = 0.005
+    # if rho != rho_default:
+    #     std_w = sigma * tidal_amplitude / np.sqrt(2 * rho_default)
+    #     sigma = std_w * np.sqrt(2 * rho) / tidal_amplitude
 
     mean_waterlevel = mean_waterlevel + (amplitude_annual_cycle*np.cos(time*2*np.pi/period_annual))
     waterlevel_periodic = tidal_amplitude/np.sqrt(amplitude_M2**2 + amplitude_S2**2)*(amplitude_M2*np.cos(time*2*np.pi/period_M2) + amplitude_S2*np.cos(time*2*np.pi/period_S2))
@@ -116,6 +116,46 @@ def calculate_inundation_metrics(low_waterlevel, high_waterlevel, dz = 0.001, pl
         plt.show()
 
     return elevation, emergence_freq, inundation_freq
+
+def find_avg_max_duration(elevation, waterlevel, dt):
+
+    def find_durations(x, dt):
+        
+        nt, nyear, nz = x.shape
+
+        x = x.astype(int)
+        x = np.pad(x, ((1,1), (0,0), (0,0)), constant_values = 0) #for 3D array, only nt dimesnion needs padding
+
+        # Find change points
+        changes = np.diff(x, axis = 0)
+
+        yearly_max_duration = np.zeros((nyear, nz), dtype = float)
+        for z in range(nz):
+            for year in range(nyear):
+                start = np.where(changes[:,year,z] ==  1)[0]
+                end   = np.where(changes[:,year,z] == -1)[0]
+                durations = end - start
+                if durations.size > 0:
+                    yearly_max_duration[year,z] = durations.max()
+
+        avg_max_duration = yearly_max_duration.max(axis = 0) * dt / 24
+
+        return avg_max_duration
+
+    nt = int((24 * 365.25 * 2) / dt)
+    nyear = int(waterlevel.size / nt)
+    w = waterlevel[:(nt*nyear)].reshape(nyear, nt).T
+
+    dz = 0.02
+    inundated = w[:, :, None] >= elevation[None, None, :]
+    emergent  = w[:, :, None] <  elevation[None, None, :]
+
+    avg_max_inundation_duration = find_durations(inundated, dt)
+    avg_max_emergent_duration = find_durations(emergent, dt)
+    avg_max_inundation_duration[avg_max_inundation_duration == avg_max_inundation_duration.max()] = np.nan
+    avg_max_emergent_duration[avg_max_emergent_duration == avg_max_emergent_duration.max()] = np.nan
+
+    return avg_max_inundation_duration, avg_max_emergent_duration
 
 # time, waterlevel, mean_waterlevel = create_waterlevel_timeseries(plot = True)
 # tidal_cycle, low_waterlevel, high_waterlevel = calculate_highlow_water(waterlevel, dt = 5/60, plot = True)
