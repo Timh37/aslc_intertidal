@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def create_waterlevel_timeseries(tidal_amplitude = 1, amplitude_annual_cycle = 0, amplitude_M2 = 1, amplitude_S2 = 0.4, sigma = 0.007, rho = 0.005, mean_waterlevel = 0, n_years = 1, dt = 60/60, plot = False):
+def create_waterlevel_timeseries(tidal_amplitude = 1, amplitude_annual_cycle = 0, amplitude_M2 = 1, amplitude_S2 = 0.4, sigma = 0.007, rho = 0.005, mean_waterlevel = 0, n_years = 1, dt = 5/60, plot = False):
 
     def generate_oun(nt, sigma, rho, dt, xmean = 0):
 
@@ -50,7 +50,7 @@ def create_waterlevel_timeseries(tidal_amplitude = 1, amplitude_annual_cycle = 0
 
     return time, waterlevel, mean_waterlevel
 
-def calculate_highlow_water(waterlevel, dt = 60/60, plot = False):
+def calculate_highlow_water(waterlevel, dt = 5/60, plot = False):
     '''
     Calculates the maximum and minimum waterlevel of each tidal cycle from an input waterlevel timeseries
     
@@ -96,11 +96,11 @@ def calculate_highlow_water(waterlevel, dt = 60/60, plot = False):
 
     return tidal_cycle, low_waterlevel, high_waterlevel
 
-def calculate_inundation_metrics(low_waterlevel, high_waterlevel, dz = 0.001, plot = False):
+def calculate_inundation_metrics(elevation, low_waterlevel, high_waterlevel, plot = False):
 
-    elevation_bins = np.arange(-5 - dz/2, 5 + dz/2 + dz, dz)
-    elevation = (elevation_bins[1:] + elevation_bins[:-1])/2
+    dz = np.abs(np.diff(elevation).mean())
 
+    elevation_bins = np.arange(elevation.min() - dz/2, elevation.max() + dz/2 + dz, dz)
     counts, _ = np.histogram(high_waterlevel, bins = elevation_bins)
     inundation_freq = 1 - np.cumsum(counts/counts.sum())
 
@@ -115,7 +115,7 @@ def calculate_inundation_metrics(low_waterlevel, high_waterlevel, dz = 0.001, pl
         plt.legend(frameon = False, fontsize = 11)
         plt.show()
 
-    return elevation, emergence_freq, inundation_freq
+    return emergence_freq, inundation_freq
 
 def find_avg_max_duration(elevation, waterlevel, dt):
 
