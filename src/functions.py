@@ -30,15 +30,13 @@ def create_waterlevel_timeseries(tidal_amplitude = 1, amplitude_annual_cycle = 0
 
     mean_waterlevel = mean_waterlevel + (amplitude_annual_cycle*np.cos(time*2*np.pi/period_annual))
     waterlevel_periodic = tidal_amplitude/np.sqrt(amplitude_M2**2 + amplitude_S2**2)*(amplitude_M2*np.cos(time*2*np.pi/period_M2) + amplitude_S2*np.cos(time*2*np.pi/period_S2))
-
-    # Scale water level to tidal range
-    mean_waterlevel = mean_waterlevel * tidal_amplitude/2
-    waterlevel_periodic = waterlevel_periodic * tidal_amplitude/2
-
-    # Add stochastic constituent
     waterlevel_stochastic = generate_oun(nt, sigma, rho, dt, xmean = 0)
 
+    # Combine periodic & stochastic components
     waterlevel = mean_waterlevel + waterlevel_periodic + waterlevel_stochastic
+
+    # Scale water level to tidal range
+    waterlevel = waterlevel * tidal_amplitude/2
 
     if plot:
         plt.plot(time/24, waterlevel, c = 'blue', alpha = 0.3)
