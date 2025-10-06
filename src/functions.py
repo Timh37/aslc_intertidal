@@ -37,6 +37,7 @@ def create_waterlevel_timeseries(tidal_amplitude = 1, amplitude_annual_cycle = 0
 
     # Scale water level to tidal range
     waterlevel = waterlevel * tidal_amplitude/2
+    mean_waterlevel = mean_waterlevel * tidal_amplitude/2
 
     if plot:
         plt.plot(time/24, waterlevel, c = 'blue', alpha = 0.3)
