@@ -1,2 +1,2 @@
 # aslc_intertidal
-Repository for the conceptual analysis of the effect of changes in the range of the annual sea-level cycle on flooding and emergence frequencies in intertidal zones.
+Repository for the conceptual analysis of the effect of (changes in) the range of the annual sea-level cycle on the frequency and duration of inundation and emergence in intertidal zones. This repository underlies the Brief Communication "Future Changes in Seasonal Sea-Level Variability Could Reshape Coastal Ecosystems" in preparation for Nature Climate Change by Tim Hermans, Greg Fivash and Jim van Belzen.
