@@ -1,0 +1,10 @@
+-allsat_l4_duacs_sla_1993-2023_0.125deg_mean_alsc_range.nc: range of the mean annual sea-level cycle observed with satellite altimetry
+-d_aslc_range_memmean_median_ssp370_at_duacs.nc: projected range change under SSP3-7.0 (CMIP6 ensemble median), interpolated to the altimetry grid
+-d_aslc_range_memmean_median_ssp370_tgs.nc: projected range change under SSP3-7.0 (CMIP6 ensemble median), interpolated to tide gauges
+-d_aslc_range_memmean_median_ssp370.nc: projected range change under SSP3-7.0 (CMIP6 ensemble median) at 1 by 1 degree grid
+-eot20_tr_at_duacs.nc: EOT20 tidal range data interpolated to the altimetry grid
+-eot20_tr_at_psmsl.nc: EOT20 tidal range data interpolated to tide gauges
+-hist_aslc_range_memmean_median_at_duacs.nc: Historical range (CMIP6 ensemble median), interpolated to the altimetry grid
+-hist_aslc_range_memmean_median_tgs.nc: Historical range (CMIP6 ensemble median), interpolated to tide gauges
+-hist_aslc_range_memmean_median.nc: Historical range (CMIP6 ensemble median) at 1 by 1 degree grid
+-psmsl_mean_alsc_range.nc: range of the mean annual sea-level cycle observed with tide gauges
