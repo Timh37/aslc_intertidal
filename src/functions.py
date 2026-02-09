@@ -49,7 +49,7 @@ def create_waterlevel_timeseries(tidal_amplitude = 1, amplitude_annual_cycle = 0
 
     return time, waterlevel, mean_waterlevel
 
-def calculate_highlow_water(waterlevel, dt = 5/60, plot = False):
+def calculate_highlow_water(waterlevel, dt = 5/60, tidal_interval_hr = 745/60, plot = False):
     '''
     Calculates the maximum and minimum waterlevel of each tidal cycle from an input waterlevel timeseries
     
@@ -62,10 +62,10 @@ def calculate_highlow_water(waterlevel, dt = 5/60, plot = False):
     (2) high water level: Series of high water levels (one per tidal cycle) (1D float array)
     '''
 
-    def reshape_timeseries_into_cycles(waterlevel, dt):
+    def reshape_timeseries_into_cycles(waterlevel, dt, tidal_interval_hr):
 
         # Define mesaurement frequency parameters
-        tidal_interval_hr = 745/60 # (minutes)
+        # tidal_interval_hr = 745/60 # (minutes)
         measurements_per_cycle = np.round(tidal_interval_hr/dt).astype(int)
 
         # Reshape waterlevel timeseries into array of tidal cycles
@@ -77,7 +77,7 @@ def calculate_highlow_water(waterlevel, dt = 5/60, plot = False):
 
         return waterlevel_cycles
 
-    waterlevel_cycles = reshape_timeseries_into_cycles(waterlevel, dt)
+    waterlevel_cycles = reshape_timeseries_into_cycles(waterlevel, dt, tidal_interval_hr)
     high_waterlevel = waterlevel_cycles.max(axis = 0)
     low_waterlevel = waterlevel_cycles.min(axis = 0)
     tidal_cycle = np.arange(0, waterlevel_cycles.shape[1], 1)
